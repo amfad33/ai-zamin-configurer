@@ -40,12 +40,6 @@ The website attaches the selected user's configuration locally in the browser to
 
 Configuration writes are local. When used, image tools send paid requests to `https://aizamin.ir/v1`; Hermes may also retrieve user-supplied reference-image URLs. Chat requests are sent by the configured application. This helper is not a model service and does not grant free API credit.
 
-## Direct browser setup
-
-The unchanged native downloads remain available. `browser-config/` contains the bundled direct writer for Codex, OpenCode and first-time unmanaged Hermes profiles. See [supported boundaries and permissions](browser-config/README.md) and [Hermes compatibility limits](browser-config/hermes-boundary.md). `assets/setup-direct.js` is the production bundle; build dependencies are local, not a CDN or customer prerequisite. Browser directory grants, private file modes and real paid client calls are not established by planner tests.
-
-Build with `cd browser-config && npm ci --ignore-scripts && npm run build`; from repository root run `node tests/setup-direct.test.cjs`. The website-only HTML/account/OPFS integration fixture is intentionally excluded. `tests/setup-hermes-runtime.cjs` is an optional isolated installed-source probe using `HERMES_SOURCE`, not a private backend dependency.
-
 ## Build and test (developers only)
 
 Use the Go version declared in `configurer/go.mod`. Node and Python are developer-test dependencies, not customer requirements.
