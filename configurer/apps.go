@@ -1,6 +1,7 @@
 package main
 
 import (
+	_ "embed"
 	"errors"
 	"fmt"
 	"os"
@@ -103,6 +104,10 @@ func hermesCommand(args ...string) (string, error) {
 	}
 	return strings.TrimSpace(string(b)), nil
 }
+
+//go:embed hermes-stt/__init__.py
+var hermesSTTSource string
+
 func configureHermes(p Payload) error {
 	if _, err := exec.LookPath("hermes"); err != nil {
 		return errors.New("Hermes is not on PATH. Run this configurer from a terminal where the installed hermes command works")
@@ -135,13 +140,21 @@ func configureHermes(p Payload) error {
 			return err
 		}
 	}
-	settings := [][2]string{{"HERMES_CUSTOM_AIZAMIN_API_KEY", p.Key}, {"providers.aizamin.api", endpoint}, {"providers.aizamin.key_env", "HERMES_CUSTOM_AIZAMIN_API_KEY"}, {"providers.aizamin.transport", "chat_completions"}, {"providers.aizamin.default_model", p.Model}, {"providers.aizamin.models", strings.TrimSpace(string(jsonBytes(p.Catalog)))}, {"providers.aizamin.models_discovered", "true"}, {"providers.aizamin.discover_models", "true"}, {"image_gen.provider", "aizamin"}, {"image_gen.aizamin.model", "gpt-image-2.5-flare-medium"}, {"auxiliary.vision.provider", "aizamin"}, {"auxiliary.vision.model", p.Model}}
+	sttDir := filepath.Join(filepath.Dir(config), "plugins", "stt", "aizamin")
+	for name, source := range map[string]string{"plugin.yaml": "name: aizamin-stt\nversion: 1.0.0\ndescription: AI Zamin Whisper speech transcription\n", "__init__.py": hermesSTTSource} {
+		if err = writePrivate(filepath.Join(sttDir, name), []byte(source), 0600); err != nil {
+			return err
+		}
+	}
+	settings := [][2]string{{"stt.aizamin.base_url", endpoint}, {"stt.aizamin.model", "whisper-large-v3-turbo"}, {"HERMES_CUSTOM_AIZAMIN_API_KEY", p.Key}, {"providers.aizamin.api", endpoint}, {"providers.aizamin.key_env", "HERMES_CUSTOM_AIZAMIN_API_KEY"}, {"providers.aizamin.transport", "chat_completions"}, {"providers.aizamin.default_model", p.Model}, {"providers.aizamin.models", strings.TrimSpace(string(jsonBytes(p.Catalog)))}, {"providers.aizamin.models_discovered", "true"}, {"providers.aizamin.discover_models", "false"}, {"image_gen.provider", "aizamin"}, {"image_gen.aizamin.model", "gpt-image-2.5-flare-medium"}, {"auxiliary.vision.provider", "aizamin"}, {"auxiliary.vision.model", p.Model}}
 	for _, s := range settings {
 		if _, err = hermesCommand("config", "set", s[0], s[1]); err != nil {
 			return err
 		}
 	}
-	for _, args := range [][]string{{"plugins", "enable", "image_gen/aizamin", "--no-allow-tool-override"}, {"tools", "enable", "image_gen"}, {"tools", "enable", "vision"}} {
+	// Enable the STT plugin before selecting it; never fall back to native OpenAI,
+	// which rewrites these public Whisper IDs to whisper-1.
+	for _, args := range [][]string{{"plugins", "enable", "stt/aizamin", "--no-allow-tool-override"}, {"config", "set", "stt.provider", "aizamin"}, {"config", "set", "stt.enabled", "true"}, {"plugins", "enable", "image_gen/aizamin", "--no-allow-tool-override"}, {"tools", "enable", "image_gen"}, {"tools", "enable", "vision"}} {
 		if _, err = hermesCommand(args...); err != nil {
 			return err
 		}

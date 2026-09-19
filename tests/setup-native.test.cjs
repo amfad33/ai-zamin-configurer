@@ -25,4 +25,9 @@ for (const app of ['codex','hermes','opencode']) for (const os of ['windows','ma
  if(app==='opencode'){assert.ok(a.payload.tool.includes('gpt-image-2.5-flare'));assert.equal(a.payload.provider.models['gpt-5.5'].attachment,true)}
 }
 assert.throws(()=>buildInstaller('codex','windows','fake\nkey'),/single line/);
+assert.throws(()=>buildInstaller('hermes','windows','fake-test-key','whisper-large-v3-turbo'),/coding models/);
+for (const os of ['windows','macos','linux']) {
+ const catalog=buildInstaller('hermes',os,'fake-test-key','gpt-5.5',['whisper-large-v3','whisper-large-v3-turbo','groq/whisper-large-v3','gpt-5.5']).payload.catalog;
+ assert.deepEqual(Object.keys(catalog),['gpt-5.5']);
+}
 console.log('Native browser payload matrix: 18 artifacts verified');

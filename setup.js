@@ -1,6 +1,8 @@
 (() => {
   const ENDPOINT = 'https://aizamin.ir/v1';
   const DEFAULT_MODEL = 'gpt-5.5';
+  // Audio models belong to STT settings, never the coding/chat catalog.
+  const isSTTModel = id => /^(?:groq\/)?(?:whisper(?:-|$)|distil-whisper(?:-|$))/.test(id);
   // Explicit capabilities for proxy aliases absent from upstream model catalogs.
   const VISION_MODELS = ['gpt-5.2', 'gpt-5.6', 'gpt-5.6-sol', 'gpt-5.6-terra', 'gpt-5.6-luna', 'gpt-5.5', 'gpt-5.4', 'gpt-5.4-mini', 'codex-mini-latest'];
   const labels = { codex: 'Codex', hermes: 'Hermes', opencode: 'OpenCode' };
@@ -127,6 +129,8 @@ export default tool({
     if (typeof key !== 'string' || !key.trim() || /[\r\n\0]/.test(key)) throw new Error('API key must be a non-empty single line');
     if (typeof model !== 'string' || !model || /[\r\n\0]/.test(model)) throw new Error('Model ID must be a non-empty single line');
     if (!Array.isArray(models) || models.some(id => typeof id !== 'string' || !id || /[\r\n\0]/.test(id))) throw new Error('Invalid model catalog');
+    if (isSTTModel(model)) throw new Error('Speech models cannot be selected as coding models');
+    models = models.filter(id => !isSTTModel(id));
     const payload = { version: 1, app, key, model };
     if (app === 'opencode') Object.assign(payload, { provider: openCodeConfig(key), tool: openCodeImageTool });
     if (app === 'hermes') {
@@ -139,7 +143,7 @@ export default tool({
     return {
       filename: `aizamin-${app}-setup-${os}-${arch}${os === 'macos' ? '.command' : suffix}`,
       os, mime: 'application/octet-stream', payload,
-      binaryUrl: `/assets/configurers/aizamin-configurer-${os}-${arch}${suffix}?v=native-v1`,
+      binaryUrl: `/assets/configurers/aizamin-configurer-${os}-${arch}${suffix}?v=native-stt-v2`,
       content: `AI Zamin native configurer (${os}/${arch})\nNo external Node/Python/Go runtime installation. Existing files get timestamped .aizamin.backup copies.\nOpen-source configuration helper: https://github.com/amfad33/ai-zamin-configurer\nThis is the embedded configuration, not executable source. Keep it private.\n\n${JSON.stringify(payload, null, 2)}`,
     };
   };

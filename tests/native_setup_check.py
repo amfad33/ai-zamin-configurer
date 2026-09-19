@@ -79,6 +79,14 @@ for(const app of ['codex','opencode','hermes']){
         assert ['config','set','image_gen.provider','aizamin'] in calls
         assert ['config','set','auxiliary.vision.provider','aizamin'] in calls
         assert ['config','set','providers.aizamin.key_env','HERMES_CUSTOM_AIZAMIN_API_KEY'] in calls
+        assert ['config','set','stt.provider','aizamin'] in calls
+        assert ['config','set','stt.enabled','true'] in calls
+        assert ['config','set','stt.aizamin.model','whisper-large-v3-turbo'] in calls
+        assert ['config','set','stt.aizamin.base_url','https://aizamin.ir/v1'] in calls
+        assert ['plugins','enable','stt/aizamin','--no-allow-tool-override'] in calls
+        stt_source = (home / 'hermes/plugins/stt/aizamin/__init__.py').read_text()
+        assert stt_source == (ROOT / 'configurer/hermes-stt/__init__.py').read_text()
+        assert not any(c[:3] == ['config','set','GROQ_API_KEY'] or c[:3] == ['config','set','VOICE_TOOLS_OPENAI_KEY'] for c in calls)
         for path in ['codex/config.toml','codex/auth.json','hermes/config.yaml','hermes/.env','xdg/opencode/opencode.jsonc']:
             assert len(list((home / path).parent.glob(Path(path).name+'.aizamin.backup.*'))) >= 2, path
         print('Native configurer and installed MCP executed twice with stripped PATH; fake Hermes fixture verified.')
