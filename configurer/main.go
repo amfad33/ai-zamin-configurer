@@ -47,17 +47,6 @@ func readPayload(b []byte) (Payload, error) {
 	return p, nil
 }
 func main() {
-	if len(os.Args) == 2 && os.Args[1] == "--version" {
-		fmt.Println("AI Zamin Configurer " + version)
-		return
-	}
-	if len(os.Args) == 1 {
-		if err := runUI(); err != nil {
-			fmt.Fprintln(os.Stderr, "AI Zamin:", err)
-			os.Exit(1)
-		}
-		return
-	}
 	if len(os.Args) == 2 && os.Args[1] == "--mcp" {
 		serveMCP(os.Stdin, os.Stdout)
 		return
@@ -101,9 +90,6 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	return applyPayload(p)
-}
-func applyPayload(p Payload) error {
 	switch p.App {
 	case "opencode":
 		return configureOpenCode(p)
