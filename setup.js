@@ -144,7 +144,7 @@ export default tool({
       filename: `aizamin-${app}-setup-${os}-${arch}${os === 'macos' ? '.command' : suffix}`,
       os, mime: 'application/octet-stream', payload,
       binaryUrl: `/assets/configurers/aizamin-configurer-${os}-${arch}${suffix}?v=native-stt-v2`,
-      content: `AI Zamin native configurer (${os}/${arch})\nNo external Node/Python/Go runtime installation. Existing files get timestamped .aizamin.backup copies.\nOpen-source configuration helper: https://github.com/amfad33/ai-zamin-configurer\nThis is the embedded configuration, not executable source. Keep it private.\n\n${JSON.stringify(payload, null, 2)}`,
+      content: `AI Zamin native configurer (${os}/${arch})\nNo external Node/Python/Go runtime installation. Existing files get timestamped .aizamin.backup copies.\nOpen-source configuration helper: https://github.com/amfad33/ai-zamin-configurer\nThis is the configuration preview, not executable source. Keep it private; the reusable download contains no key.\n\n${JSON.stringify(payload, null, 2)}`,
     };
   };
   const assembleInstaller = (binary, artifact) => {
