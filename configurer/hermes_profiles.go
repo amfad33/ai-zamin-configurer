@@ -6,9 +6,9 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"sort"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type hermesProfilePlan struct {
@@ -16,74 +16,41 @@ type hermesProfilePlan struct {
 	Payload Payload
 }
 
-// Exact public Sub2API route aliases observed in the gateway catalog. The local
-// setup.js and server/catalog.py do not contain upstream routing metadata.
-// Do not generalize these to model-family substrings or provider-qualified IDs.
-func isHermesLiteModel(id string) bool {
-	switch id {
-	case "qwen3.8-27b", "gpt-oss-120b", "gpt-oss-20b", "groq-compound":
-		return true
-	}
-	return strings.HasPrefix(id, "groq/") || strings.HasSuffix(id, ":free")
-}
-
-// Installed Hermes supports_tools metadata is descriptive, not a runtime tool
-// gate. Keep known chat-only models in a separate no-tools profile so /model
-// cannot accidentally send terminal schemas to Compound. Unknown capabilities
-// remain selectable; they are not silently treated as unsupported.
-func hermesChatOnlyModel(id string, metadata any) bool {
-	switch id {
-	case "groq-compound", "groq/compound", "groq/compound-mini", "groq/groq/compound", "groq/groq/compound-mini":
-		return true
-	}
-	if m, ok := metadata.(map[string]any); ok {
-		if supported, ok := m["supports_tools"].(bool); ok && !supported {
-			return true
-		}
-	}
-	return false
-}
-
+// Catalog membership is resolved by the installed native runtime plugin, never
+// partitioned from the installer's snapshot or a hard-coded public alias list.
 func hermesProfilePlans(p Payload) ([]hermesProfilePlan, error) {
-	lite, standard, chat := map[string]any{}, map[string]any{}, map[string]any{}
-	for id, metadata := range p.Catalog {
-		if hermesChatOnlyModel(id, metadata) {
-			chat[id] = metadata
-		} else if isHermesLiteModel(id) {
-			lite[id] = metadata
-		} else {
-			standard[id] = metadata
-		}
+	p.Catalog = nil
+	return []hermesProfilePlan{{"aizamin-lite", p}, {"aizamin-standard", p}}, nil
+}
+
+func retireManagedHermesChat(root string) error {
+	dir := filepath.Join(root, "profiles", "aizamin-chat")
+	marker, err := os.ReadFile(filepath.Join(dir, ".aizamin-managed"))
+	if os.IsNotExist(err) {
+		return nil
 	}
-	if len(p.Catalog) == 0 {
-		return nil, errors.New("missing Hermes model catalog")
+	if err != nil {
+		return err
 	}
-	plans := []hermesProfilePlan{}
-	for _, entry := range []struct {
-		name    string
-		catalog map[string]any
-	}{{"aizamin-lite", lite}, {"aizamin-standard", standard}, {"aizamin-chat", chat}} {
-		if len(entry.catalog) == 0 {
-			continue // Never emit an empty default: Hermes can fall back to a vendor model.
-		}
-		selected := p.Model
-		if _, ok := entry.catalog[selected]; !ok {
-			ids := make([]string, 0, len(entry.catalog))
-			for id := range entry.catalog {
-				ids = append(ids, id)
-			}
-			sort.Strings(ids)
-			selected = ""
-			if len(ids) > 0 {
-				selected = ids[0]
-			}
-		}
-		next := p
-		next.Catalog = entry.catalog
-		next.Model = selected
-		plans = append(plans, hermesProfilePlan{entry.name, next})
+	if string(marker) != "1\n" {
+		return nil
 	}
-	return plans, nil
+	info, err := os.Lstat(dir)
+	if err != nil {
+		return err
+	}
+	if info.Mode()&os.ModeSymlink != 0 {
+		return errors.New("refusing symlinked retired profile")
+	}
+	archive := filepath.Join(root, "aizamin-archives", "aizamin-chat-"+time.Now().UTC().Format("20060102T150405.000000000"))
+	if err = os.MkdirAll(filepath.Dir(archive), 0700); err != nil {
+		return err
+	}
+	if err = os.Rename(dir, archive); err != nil {
+		return err
+	}
+	fmt.Println("Archived retired managed chat profile (conversations preserved): " + archive)
+	return nil
 }
 
 func hermesProfileCommand(name string, args ...string) (string, error) {
@@ -135,21 +102,6 @@ func configureHermes(p Payload) error {
 		return errors.New("Hermes returned an invalid root configuration path")
 	}
 	root := filepath.Dir(rootConfig)
-	// Refuse a catalog shrink that would leave a stale managed profile usable.
-	// Never overwrite it with an empty model (Hermes may select a vendor default).
-	for _, name := range []string{"aizamin-lite", "aizamin-standard", "aizamin-chat"} {
-		present := false
-		for _, plan := range plans {
-			present = present || plan.Name == name
-		}
-		if !present {
-			if _, e := os.Stat(filepath.Join(root, "profiles", name)); e == nil {
-				return fmt.Errorf("catalog has no models for existing profile %s; nothing changed; retire that profile explicitly before retrying", name)
-			} else if !os.IsNotExist(e) {
-				return e
-			}
-		}
-	}
 	// Never take over a similarly named user profile. Mark ownership on creation.
 	for _, plan := range plans {
 		dir := filepath.Join(root, "profiles", plan.Name)
@@ -162,12 +114,15 @@ func configureHermes(p Payload) error {
 			return e
 		}
 	}
+	if err = retireManagedHermesChat(root); err != nil {
+		return err
+	}
 	for _, plan := range plans {
 		if err = configureManagedHermesProfile(root, plan); err != nil {
 			return fmt.Errorf("%s setup failed; managed profiles may be partially updated; timestamped backups are retained: %w", plan.Name, err)
 		}
 	}
-	fmt.Println("Default/active profile unchanged. Start a NEW session with hermes -p aizamin-lite (minimal terminal agent), aizamin-standard (full tools/image), or aizamin-chat (Compound/explicitly unsupported tool models, chat-only). Only nonempty profiles are created. /model does not change profiles. STT is available in all. Unknown model tool support and long-context/rate-limit compatibility are not guaranteed.")
+	fmt.Println("Default/active profile unchanged. Start hermes -p aizamin-lite (minimal terminal) or hermes -p aizamin-standard (full tools/image/vision). Both retain STT. Catalogs refresh on Hermes startup; existing customers need this one-time migration, not recurring setup. /model does not switch profiles.")
 	return nil
 }
 

@@ -1,0 +1,4 @@
+name: aizamin
+kind: model-provider
+version: 1.0.0
+description: AI Zamin live model discovery (no bundled catalog)

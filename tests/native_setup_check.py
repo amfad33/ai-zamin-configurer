@@ -78,7 +78,9 @@ for(const app of ['codex','opencode','hermes']){
         calls = [json.loads(line) for line in (home / 'hermes/profiles/aizamin-standard/fake-cli-calls.jsonl').read_text().splitlines()]
         assert ['config','set','image_gen.provider','aizamin'] in calls
         assert ['config','set','auxiliary.vision.provider','aizamin'] in calls
-        assert ['config','set','providers.aizamin.key_env','HERMES_CUSTOM_AIZAMIN_API_KEY'] in calls
+        assert ['config','set','HERMES_CUSTOM_AIZAMIN_API_KEY','fake-test-key'] in calls
+        assert ['config','set','aizamin_catalog.url','https://aizamin.ir/hermes-standard/v1/models'] in calls
+        assert (home / 'hermes/profiles/aizamin-standard/plugins/model-providers/aizamin/__init__.py').is_file()
         assert ['config','set','stt.provider','aizamin'] in calls
         assert ['config','set','stt.enabled','true'] in calls
         assert ['config','set','stt.aizamin.model','whisper-large-v3-turbo'] in calls

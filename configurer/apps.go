@@ -115,6 +115,12 @@ func hermesCommand(args ...string) (string, error) {
 //go:embed hermes-stt/__init__.py
 var hermesSTTSource string
 
+//go:embed hermes-models/__init__.py
+var hermesModelsSource string
+
+//go:embed hermes-models/plugin.yaml
+var hermesModelsManifest string
+
 func configureHermesProfile(p Payload, profile string) error {
 	command := func(args ...string) (string, error) { return hermesProfileCommand(profile, args...) }
 	if _, err := exec.LookPath("hermes"); err != nil {
@@ -154,7 +160,7 @@ func configureHermesProfile(p Payload, profile string) error {
 			return err
 		}
 	}
-	settings := [][2]string{{"stt.aizamin.base_url", endpoint}, {"stt.aizamin.model", "whisper-large-v3-turbo"}, {"HERMES_CUSTOM_AIZAMIN_API_KEY", p.Key}, {"providers.aizamin.api", endpoint}, {"providers.aizamin.key_env", "HERMES_CUSTOM_AIZAMIN_API_KEY"}, {"providers.aizamin.transport", "chat_completions"}, {"providers.aizamin.default_model", p.Model}, {"providers.aizamin.models", strings.TrimSpace(string(jsonBytes(p.Catalog)))}, {"providers.aizamin.models_discovered", "true"}, {"providers.aizamin.discover_models", "false"}, {"image_gen.provider", "aizamin"}, {"image_gen.aizamin.model", "gpt-image-2.5-flare-medium"}, {"auxiliary.vision.provider", "aizamin"}, {"auxiliary.vision.model", p.Model}}
+	settings := [][2]string{{"stt.aizamin.base_url", endpoint}, {"stt.aizamin.model", "whisper-large-v3-turbo"}, {"HERMES_CUSTOM_AIZAMIN_API_KEY", p.Key}, {"image_gen.provider", "aizamin"}, {"image_gen.aizamin.model", "gpt-image-2.5-flare-medium"}, {"auxiliary.vision.provider", "aizamin"}, {"auxiliary.vision.model", p.Model}}
 	for _, s := range settings {
 		args := []string{"config", "set", s[0], s[1]}
 		if s[0] == "providers.aizamin.models" {
@@ -175,19 +181,28 @@ func configureHermesProfile(p Payload, profile string) error {
 			return err
 		}
 	}
-	profileSettings := [][2]string{{"model.provider", "custom:aizamin"}, {"model.default", p.Model}}
+	profileSettings := [][2]string{{"model.provider", "aizamin"}, {"model.default", p.Model}}
 	if profile != "aizamin-standard" {
 		toolsets := "[\"terminal\"]"
-		if profile == "aizamin-chat" {
-			toolsets = "[]"
-			profileSettings = append(profileSettings, [2]string{"agent.tool_use_enforcement", "false"})
-		}
+
 		profileSettings = append(profileSettings, [][2]string{{"toolsets", toolsets}, {"platform_toolsets.cli", toolsets}, {"platform_toolsets.desktop", toolsets}, {"platform_toolsets.tui", toolsets}, {"platform_toolsets.api", toolsets}, {"agent.coding_context", "off"}, {"agent.environment_probe", "false"}, {"memory.memory_enabled", "false"}, {"memory.user_profile_enabled", "false"}, {"skills.project_discovery", "false"}, {"context_file_max_chars", "1024"}}...)
 	}
 	for _, setting := range profileSettings {
 		if _, err = command("config", "set", setting[0], setting[1]); err != nil {
 			return err
 		}
+	}
+
+	// Install the runtime provider last: config CLI invocations must not perform
+	// repeated catalog requests while this multi-command migration is incomplete.
+	modelDir := filepath.Join(filepath.Dir(config), "plugins", "model-providers", "aizamin")
+	for name, source := range map[string]string{"plugin.yaml": hermesModelsManifest, "__init__.py": hermesModelsSource} {
+		if err = writePrivate(filepath.Join(modelDir, name), []byte(source), 0600); err != nil {
+			return err
+		}
+	}
+	if _, err = command("config", "set", "aizamin_catalog.url", "https://aizamin.ir/hermes-"+strings.TrimPrefix(profile, "aizamin-")+"/v1/models"); err != nil {
+		return err
 	}
 	fmt.Println("Configured managed Hermes profile: " + profile)
 	return nil

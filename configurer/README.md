@@ -64,8 +64,7 @@ Only the two public, unprefixed model IDs are accepted. There is no substitution
 or fallback to `whisper-1` or a direct vendor endpoint. Both models are exposed by
 the plugin's STT `list_models()`, not the coding catalog. `setup.js` excludes
 Whisper models from `/models` selection and emitted Hermes catalogs, and the
-installer disables subsequent unfiltered named-provider discovery. Re-run the
-configurer to refresh the coding catalog. The STT model remains configurable
+native provider uses a filtered live catalog on subsequent Hermes startups. The STT model remains configurable
 through the command above; a dedicated Hermes STT picker is not promised.
 
 ### Compatibility evidence and verification limits
@@ -100,29 +99,54 @@ Requires Hermes v0.21.3+ and `profile create --no-skills --no-alias`.
 Default/active profiles are untouched. Existing unmarked reserved names are
 refused; reruns retain backups. Multi-command errors can be partial.
 
-- `hermes -p aizamin-lite`: minimal **terminal agent** for coding, file operations
-  and tests. Exact routes `qwen3.8-27b`, `gpt-oss-120b`, `gpt-oss-20b`, plus `groq/`
-  and `:free` catalog IDs belong here unless known not to support tools.
-  No bundled skills, memory injection, coding brief or environment probe.
-  Project files capped at 1024 characters each, not a total budget.
-- `hermes -p aizamin-standard`: remaining main models, normal tools/image/vision.
-- `hermes -p aizamin-chat`: `groq-compound`, routed Compound aliases, and catalog
-  entries explicitly declaring `supports_tools: false`. Zero tool schemas and
-  tool-use enforcement disabled. STT remains available in all profiles.
+- `hermes -p aizamin-lite`: constrained routes, minimal terminal agent, no
+  bundled skills, memory injection, coding brief or environment probe.
+- `hermes -p aizamin-standard`: main routes, normal tools/image/vision.
+- Both retain STT. `/model` does not switch profiles.
 
-Installed Hermes capability metadata is descriptive, not a runtime schema gate.
-The explicit chat partition preserves these catalog members while excluding them
-from tool-enabled profiles. Unknown capabilities remain selectable with no universal
-compatibility guarantee. Requested defaults stay in their matching partition;
-otherwise selection is deterministic. Empty partitions are skipped; an existing
-profile becoming empty fails before writes instead of leaving stale defaults.
-`/model` does not switch profiles: start a **new session**.
+Native provider discovery fetches authenticated scope catalogs at startup.
+Server membership comes from customer-visible models intersected with active
+Sub2API account `credentials.model_mapping`, not a public alias list or installer
+snapshot. API-key accounts additionally intersect mapped targets with their
+configured upstream `/models`, using the account credential server-side; redirects
+are refused and availability failures fail closed. Catalog output contains only
+public IDs and scope, never account metadata or credentials.
+Ambiguous/unmapped routes and Compound chat-only routes are excluded.
+A retired default is replaced by a remaining scoped model on the next startup.
+Catalog failures are explicit errors, not a vendor-provider fallback.
+
+**Refresh boundary:** restart the Hermes process serving the managed profile
+(quit/reopen its desktop/backend or relaunch its CLI). No installer rerun is needed.
+An already-running picker can cache entries and reinsert its currently selected
+model even after `/model --refresh`; opening a new conversation is not a guaranteed
+process restart. We do not patch Hermes or promise instantaneous in-process removal.
+The plugin clears only AI Zamin's disk-cache entry on startup and reconciles the
+saved default before selection. Empty catalogs use an unavailable sentinel rather
+than resurrecting a snapshot; no inference client is created while the catalog is empty.
+
+Catalog visibility is not an inference health check. If an operator hides/removes
+a model, the authoritative upstream catalog or account mapping must actually change.
+This integration does not delete production mappings or add arbitrary name blacklists.
+
+`testdata/check-hermes-live.py` assembles and executes a Windows installer once,
+then exercises the installed provider through real Hermes discovery/picker code
+against authenticated loopback catalogs across fresh processes: additions/removals,
+selected-default retirement, empty/recovery, exact disjoint union, no setup snapshot,
+chat-profile archive, and untouched root profile. It is not paid inference or a
+native macOS/Linux UI test.
+
+Existing customers must run this updated configurer **once** to install runtime
+integration. Later catalog changes do not require recurring configuration.
+The obsolete installer-owned chat profile is archived outside profile discovery
+with all conversations intact; unmarked personal profiles are untouched.
 
 ### Verified initial tokenizer budget
 
 `configurer/testdata/check-hermes-profiles.py` executes the writer twice using
-synthetic credentials and real Hermes in a temporary home, checks catalog shrink
-refusal, and builds the installed AIAgent prompt with network blocked.
+synthetic credentials and real Hermes in a temporary home. The separate
+`check-hermes-live.py` verifies changing loopback catalogs without reinstalling.
+The previous prompt measurement (same unchanged lightweight tool settings)
+built the installed AIAgent prompt with network blocked.
 Terminal produces four initial schemas: `terminal`, `tool_search`, `tool_describe`,
 `tool_call`. System: 10,537 characters; schemas: 6,640 characters.
 Real tiktoken 0.14.0 counts for serialized system + coding request + tools:
