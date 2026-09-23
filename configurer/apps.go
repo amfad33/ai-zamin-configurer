@@ -181,7 +181,9 @@ func configureHermesProfile(p Payload, profile string) error {
 			return err
 		}
 	}
-	profileSettings := [][2]string{{"model.provider", "aizamin"}, {"model.default", p.Model}}
+	// Rebind the complete inference route on upgrades too. Hermes Settings can
+	// leave model-level endpoint/credential overrides that outrank the plugin.
+	profileSettings := [][2]string{{"model.provider", "aizamin"}, {"model.default", p.Model}, {"model.base_url", endpoint}, {"model.key_env", "HERMES_CUSTOM_AIZAMIN_API_KEY"}}
 	if profile != "aizamin-standard" {
 		toolsets := "[\"terminal\"]"
 

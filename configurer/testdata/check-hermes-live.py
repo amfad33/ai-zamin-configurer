@@ -56,6 +56,21 @@ from hermes_cli.config import load_config
 from hermes_cli.models import provider_model_ids
 from hermes_cli.model_switch_providers import list_authenticated_providers
 c = load_config()
+from hermes_cli.runtime_provider import resolve_runtime_provider
+runtime = resolve_runtime_provider(requested='aizamin')
+assert runtime['api_key'] == 'synthetic-catalog-key', 'inference used a stale credential instead of the installed key'
+assert runtime['base_url'].rstrip('/') == 'https://aizamin.ir/v1', 'inference retained a stale endpoint'
+import httpx
+from openai import OpenAI
+def inference(request):
+    assert str(request.url) == 'https://aizamin.ir/v1/chat/completions'
+    assert request.headers['Authorization'] == 'Bearer synthetic-catalog-key'
+    return httpx.Response(200, json={'id': 'fixture', 'object': 'chat.completion',
+        'created': 0, 'model': 'fixture', 'choices': [{'index': 0,
+        'message': {'role': 'assistant', 'content': 'ok'}, 'finish_reason': 'stop'}]})
+with OpenAI(api_key=runtime['api_key'], base_url=runtime['base_url'],
+            http_client=httpx.Client(transport=httpx.MockTransport(inference))) as client:
+    assert client.chat.completions.create(model='fixture', messages=[{'role': 'user', 'content': 'hi'}]).choices[0].message.content == 'ok'
 ids = provider_model_ids('aizamin')
 rows = list_authenticated_providers(current_provider='aizamin', current_model=c['model']['default'],
     max_models=None, refresh=True, excluded_providers=[p.name for p in list_providers() if p.name != 'aizamin'])
@@ -79,6 +94,17 @@ def main():
             retired.mkdir(parents=True)
             (retired/'.aizamin-managed').write_bytes(b'1\n')
             (retired/'state.db').write_bytes(b'preserved conversation')
+            # Reproduce updating installer-owned profiles previously edited in
+            # Hermes Settings: model-level pointers outrank provider env_vars.
+            for scope in ('lite', 'standard'):
+                existing = home/'profiles'/('aizamin-'+scope)
+                existing.mkdir(parents=True)
+                (existing/'.aizamin-managed').write_bytes(b'1\n')
+                (existing/'config.yaml').write_text(yaml.safe_dump({'model': {
+                    'provider': 'custom', 'default': 'old-model',
+                    'key_env': 'STALE_API_KEY', 'api_key_env': 'STALE_API_KEY',
+                    'base_url': 'https://stale.invalid/v1'}}))
+                (existing/'.env').write_text('STALE_API_KEY=synthetic-stale-key\n')
             artifact = home/'setup.exe'
             js = """
 const fs=require('node:fs'),s=require(process.argv[1]);

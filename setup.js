@@ -143,7 +143,7 @@ export default tool({
     return {
       filename: `aizamin-${app}-setup-${os}-${arch}${os === 'macos' ? '.command' : suffix}`,
       os, mime: 'application/octet-stream', payload,
-      binaryUrl: `/assets/configurers/aizamin-configurer-${os}-${arch}${suffix}?v=native-live-catalog-v5`,
+      binaryUrl: `/assets/configurers/aizamin-configurer-${os}-${arch}${suffix}?v=native-auth-route-v6`,
       content: `AI Zamin native configurer (${os}/${arch})\nNo external Node/Python/Go runtime installation. Existing files get timestamped .aizamin.backup copies.\nOpen-source configuration helper: https://github.com/amfad33/ai-zamin-configurer\n${app === 'hermes' ? 'Creates managed aizamin-lite (constrained routes, minimal terminal) and aizamin-standard (main routes, full tools/image/vision). Native Hermes plugin loads live catalogs on startup; no recurring setup. Existing customers need this one-time migration. Default profile is untouched; obsolete installer-owned chat profiles are archived with conversations preserved. Start hermes -p PROFILE in a new session; /model does not switch profiles. Both retain STT.\n' : ''}This is the embedded configuration, not executable source. Keep it private.\n\n${JSON.stringify(payload, null, 2)}`,
     };
   };
