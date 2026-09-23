@@ -23,6 +23,11 @@ class Handler(BaseHTTPRequestHandler):
     def log_message(self, *args):
         pass
     def do_GET(self):
+        # Public edge rejects urllib's default Python user agent (HTTP 403/1010).
+        if self.headers.get('User-Agent') != 'AI-Zamin-Configurer/1.0':
+            self.send_response(403)
+            self.end_headers()
+            return
         if self.headers.get('Authorization') != 'Bearer ' + KEY:
             self.send_response(401)
             self.end_headers()

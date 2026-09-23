@@ -29,7 +29,7 @@ class AIZaminProfile(ProviderProfile):
         # resolver, which also reads the installed profile's .env on cold start.
         key = api_key or get_env_value('HERMES_CUSTOM_AIZAMIN_API_KEY') or ''
         try:
-            req = Request(self.models_url, headers={'Authorization': 'Bearer '+key, 'Accept':'application/json'})
+            req = Request(self.models_url, headers={'Authorization': 'Bearer '+key, 'Accept':'application/json', 'User-Agent':'AI-Zamin-Configurer/1.0'})
             with open_credentialed_url(req, timeout=timeout) as response:
                 payload = json.load(response)
             if not isinstance(payload, dict) or not isinstance(payload.get('data'),list):
