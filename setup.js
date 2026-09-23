@@ -143,8 +143,8 @@ export default tool({
     return {
       filename: `aizamin-${app}-setup-${os}-${arch}${os === 'macos' ? '.command' : suffix}`,
       os, mime: 'application/octet-stream', payload,
-      binaryUrl: `/assets/configurers/aizamin-configurer-${os}-${arch}${suffix}?v=native-stt-v2`,
-      content: `AI Zamin native configurer (${os}/${arch})\nNo external Node/Python/Go runtime installation. Existing files get timestamped .aizamin.backup copies.\nOpen-source configuration helper: https://github.com/amfad33/ai-zamin-configurer\nThis is the embedded configuration, not executable source. Keep it private.\n\n${JSON.stringify(payload, null, 2)}`,
+      binaryUrl: `/assets/configurers/aizamin-configurer-${os}-${arch}${suffix}?v=native-profiles-v3`,
+      content: `AI Zamin native configurer (${os}/${arch})\nNo external Node/Python/Go runtime installation. Existing files get timestamped .aizamin.backup copies.\nOpen-source configuration helper: https://github.com/amfad33/ai-zamin-configurer\n${app === 'hermes' ? 'Creates managed aizamin-lite (Groq/free minimal terminal agent), aizamin-standard (main models, full tools/image), and aizamin-chat (Compound/known non-tool models, chat-only) profiles; default profile is untouched. Start hermes -p PROFILE in a new session; /model does not switch profiles. STT works in all profiles.\n' : ''}This is the embedded configuration, not executable source. Keep it private.\n\n${JSON.stringify(payload, null, 2)}`,
     };
   };
   const assembleInstaller = (binary, artifact) => {

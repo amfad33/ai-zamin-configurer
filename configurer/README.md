@@ -40,7 +40,9 @@ normalizes formatting/comments; timestamped backups preserve the exact originals
 
 All six native targets share `apps.go` and the embedded
 `hermes-stt/__init__.py`; there are no separate shell/PowerShell STT emitters.
-The installer backs up the CLI-resolved active profile's config and `.env`,
+The installer creates/updates owned profiles using `hermes profile create`
+and `hermes -p NAME config set`; the operator's default/active profile is untouched.
+It backs up each managed profile's config and `.env`,
 installs `plugins/stt/aizamin`, and uses `hermes config set` (not handwritten YAML)
 for `stt.enabled=true`, `stt.provider=aizamin`,
 `stt.aizamin.base_url=https://aizamin.ir/v1`, and
@@ -55,7 +57,7 @@ made by installation itself.
 Alternative (run by the customer after installation):
 
 ```
-hermes config set stt.aizamin.model whisper-large-v3
+hermes -p aizamin-standard config set stt.aizamin.model whisper-large-v3
 ```
 
 Only the two public, unprefixed model IDs are accepted. There is no substitution
@@ -92,14 +94,51 @@ backups using a fake Hermes executable on Windows. Neither test proves a live
 paid transcription, plugin startup in every Hermes release, or native macOS/Linux
 execution. No user Hermes config is modified by these checks.
 
+## Managed Hermes profiles
+
+Requires Hermes v0.21.3+ and `profile create --no-skills --no-alias`.
+Default/active profiles are untouched. Existing unmarked reserved names are
+refused; reruns retain backups. Multi-command errors can be partial.
+
+- `hermes -p aizamin-lite`: minimal **terminal agent** for coding, file operations
+  and tests. Exact routes `qwen3.8-27b`, `gpt-oss-120b`, `gpt-oss-20b`, plus `groq/`
+  and `:free` catalog IDs belong here unless known not to support tools.
+  No bundled skills, memory injection, coding brief or environment probe.
+  Project files capped at 1024 characters each, not a total budget.
+- `hermes -p aizamin-standard`: remaining main models, normal tools/image/vision.
+- `hermes -p aizamin-chat`: `groq-compound`, routed Compound aliases, and catalog
+  entries explicitly declaring `supports_tools: false`. Zero tool schemas and
+  tool-use enforcement disabled. STT remains available in all profiles.
+
+Installed Hermes capability metadata is descriptive, not a runtime schema gate.
+The explicit chat partition preserves these catalog members while excluding them
+from tool-enabled profiles. Unknown capabilities remain selectable with no universal
+compatibility guarantee. Requested defaults stay in their matching partition;
+otherwise selection is deterministic. Empty partitions are skipped; an existing
+profile becoming empty fails before writes instead of leaving stale defaults.
+`/model` does not switch profiles: start a **new session**.
+
+### Verified initial tokenizer budget
+
+`configurer/testdata/check-hermes-profiles.py` executes the writer twice using
+synthetic credentials and real Hermes in a temporary home, checks catalog shrink
+refusal, and builds the installed AIAgent prompt with network blocked.
+Terminal produces four initial schemas: `terminal`, `tool_search`, `tool_describe`,
+`tool_call`. System: 10,537 characters; schemas: 6,640 characters.
+Real tiktoken 0.14.0 counts for serialized system + coding request + tools:
+**3,982–3,983 cl100k_base**, **3,989–3,990 o200k_base** across Qwen and both GPT-OSS models. Larger count + 30% + 512 gives
+at most **5,699**, below 7,000. This is a conservative local estimate, NOT exact Groq
+accounting or a live provider admission test. Deferred schemas, tool output,
+history, user overrides, MCPs and multiple project files can exceed limits.
+
+Set `AIZAMIN_PROFILE_BINARY` to the built writer and `PYTHONPATH` to installed
+Hermes source plus an isolated tiktoken installation; execute the script with
+Hermes Python. Do not install test dependencies into the operator runtime.
+Windows execution and all six cross-builds verified; native macOS/Linux untested.
+
 ### Release boundary
 
-This is source-only until release authorization. Sync `configurer/` (including
-the embedded Python provider), the public packaging portion of `setup.js`, and
-focused tests/docs to `https://github.com/amfad33/ai-zamin-configurer` without
-private website history. Rebuild all six platform binaries with the existing
-Docker build; the native source embeds the STT provider, so shipping JS alone
-cannot enable voice. The binary URL cache token is `native-stt-v2`; also bump
-`setup.html`'s script token when releasing. Verify the real downloaded artifact
-and a paid transcription separately after deployment. No commits, public-source
-pushes or deployment are performed by this change.
+Local source/build verification only. Public checkout synchronization is not
+commit, push or deployment. Build the six targets with the Dockerfile Go loop;
+release native binaries and generator together, updating cache tokens. Actual
+Groq generation, live downloaded artifact and paid STT remain separate checks.

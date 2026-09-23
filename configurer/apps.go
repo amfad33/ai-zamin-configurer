@@ -100,7 +100,14 @@ func hermesCommand(args ...string) (string, error) {
 	cmd.Env = os.Environ()
 	b, err := cmd.Output()
 	if err != nil {
-		return "", errors.New("installed Hermes CLI command failed; update Hermes and retry (command output omitted to protect secrets)")
+		label := args
+		if len(label) > 0 && label[0] == "-p" {
+			label = label[2:]
+		}
+		if len(label) > 3 {
+			label = label[:3]
+		}
+		return "", fmt.Errorf("installed Hermes CLI command failed (%s); update Hermes and retry (values/output omitted to protect secrets)", strings.Join(label, " "))
 	}
 	return strings.TrimSpace(string(b)), nil
 }
@@ -108,15 +115,16 @@ func hermesCommand(args ...string) (string, error) {
 //go:embed hermes-stt/__init__.py
 var hermesSTTSource string
 
-func configureHermes(p Payload) error {
+func configureHermesProfile(p Payload, profile string) error {
+	command := func(args ...string) (string, error) { return hermesProfileCommand(profile, args...) }
 	if _, err := exec.LookPath("hermes"); err != nil {
 		return errors.New("Hermes is not on PATH. Run this configurer from a terminal where the installed hermes command works")
 	}
-	config, err := hermesCommand("config", "path")
+	config, err := command("config", "path")
 	if err != nil {
 		return err
 	}
-	env, err := hermesCommand("config", "env-path")
+	env, err := command("config", "env-path")
 	if err != nil {
 		return err
 	}
@@ -148,17 +156,39 @@ func configureHermes(p Payload) error {
 	}
 	settings := [][2]string{{"stt.aizamin.base_url", endpoint}, {"stt.aizamin.model", "whisper-large-v3-turbo"}, {"HERMES_CUSTOM_AIZAMIN_API_KEY", p.Key}, {"providers.aizamin.api", endpoint}, {"providers.aizamin.key_env", "HERMES_CUSTOM_AIZAMIN_API_KEY"}, {"providers.aizamin.transport", "chat_completions"}, {"providers.aizamin.default_model", p.Model}, {"providers.aizamin.models", strings.TrimSpace(string(jsonBytes(p.Catalog)))}, {"providers.aizamin.models_discovered", "true"}, {"providers.aizamin.discover_models", "false"}, {"image_gen.provider", "aizamin"}, {"image_gen.aizamin.model", "gpt-image-2.5-flare-medium"}, {"auxiliary.vision.provider", "aizamin"}, {"auxiliary.vision.model", p.Model}}
 	for _, s := range settings {
-		if _, err = hermesCommand("config", "set", s[0], s[1]); err != nil {
+		args := []string{"config", "set", s[0], s[1]}
+		if s[0] == "providers.aizamin.models" {
+			args = []string{"config", "set", "--force", s[0], s[1]}
+		}
+		if _, err = command(args...); err != nil {
 			return err
 		}
 	}
 	// Enable the STT plugin before selecting it; never fall back to native OpenAI,
 	// which rewrites these public Whisper IDs to whisper-1.
-	for _, args := range [][]string{{"plugins", "enable", "stt/aizamin", "--no-allow-tool-override"}, {"config", "set", "stt.provider", "aizamin"}, {"config", "set", "stt.enabled", "true"}, {"plugins", "enable", "image_gen/aizamin", "--no-allow-tool-override"}, {"tools", "enable", "image_gen"}, {"tools", "enable", "vision"}} {
-		if _, err = hermesCommand(args...); err != nil {
+	commands := [][]string{{"plugins", "enable", "stt/aizamin", "--no-allow-tool-override"}, {"config", "set", "stt.provider", "aizamin"}, {"config", "set", "stt.enabled", "true"}, {"plugins", "enable", "image_gen/aizamin", "--no-allow-tool-override"}}
+	if profile == "aizamin-standard" {
+		commands = append(commands, []string{"tools", "enable", "image_gen"}, []string{"tools", "enable", "vision"})
+	}
+	for _, args := range commands {
+		if _, err = command(args...); err != nil {
 			return err
 		}
 	}
-	fmt.Println("Named provider added; active chat model unchanged. Select: /model custom:aizamin:" + p.Model)
+	profileSettings := [][2]string{{"model.provider", "custom:aizamin"}, {"model.default", p.Model}}
+	if profile != "aizamin-standard" {
+		toolsets := "[\"terminal\"]"
+		if profile == "aizamin-chat" {
+			toolsets = "[]"
+			profileSettings = append(profileSettings, [2]string{"agent.tool_use_enforcement", "false"})
+		}
+		profileSettings = append(profileSettings, [][2]string{{"toolsets", toolsets}, {"platform_toolsets.cli", toolsets}, {"platform_toolsets.desktop", toolsets}, {"platform_toolsets.tui", toolsets}, {"platform_toolsets.api", toolsets}, {"agent.coding_context", "off"}, {"agent.environment_probe", "false"}, {"memory.memory_enabled", "false"}, {"memory.user_profile_enabled", "false"}, {"skills.project_discovery", "false"}, {"context_file_max_chars", "1024"}}...)
+	}
+	for _, setting := range profileSettings {
+		if _, err = command("config", "set", setting[0], setting[1]); err != nil {
+			return err
+		}
+	}
+	fmt.Println("Configured managed Hermes profile: " + profile)
 	return nil
 }

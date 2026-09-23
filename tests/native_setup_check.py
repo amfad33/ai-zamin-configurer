@@ -43,7 +43,7 @@ def run_native_setup_check():
         js = """
 const fs=require('node:fs');const s=require(process.argv[1]);
 for(const app of ['codex','opencode','hermes']){
- const a=s.buildInstaller(app,process.argv[4],'fake-test-key','gpt-5.5',['gpt-5.5','future-model'],process.argv[5]);
+ const a=s.buildInstaller(app,process.argv[4],'fake-test-key','gpt-5.5',['gpt-5.5','future-model','qwen3.8-27b','gpt-oss-120b','gpt-oss-20b','groq-compound'],process.argv[5]);
  fs.writeFileSync(process.argv[3]+'/'+a.filename,s.assembleInstaller(fs.readFileSync(process.argv[2]),a),{mode:0o700});
 }
 """
@@ -74,8 +74,8 @@ for(const app of ['codex','opencode','hermes']){
         assert oc['provider']['openai']['models']['gpt-5.5']['attachment'] is True
         assert (home / 'xdg/opencode/tools/aizamin_image.ts').is_file()
         assert 'untouched-fixture' in (home / 'hermes/config.yaml').read_text()
-        assert (home / 'hermes/plugins/image_gen/aizamin/__init__.py').is_file()
-        calls = [json.loads(line) for line in (home / 'hermes/fake-cli-calls.jsonl').read_text().splitlines()]
+        assert (home / 'hermes/profiles/aizamin-standard/plugins/image_gen/aizamin/__init__.py').is_file()
+        calls = [json.loads(line) for line in (home / 'hermes/profiles/aizamin-standard/fake-cli-calls.jsonl').read_text().splitlines()]
         assert ['config','set','image_gen.provider','aizamin'] in calls
         assert ['config','set','auxiliary.vision.provider','aizamin'] in calls
         assert ['config','set','providers.aizamin.key_env','HERMES_CUSTOM_AIZAMIN_API_KEY'] in calls
@@ -84,10 +84,15 @@ for(const app of ['codex','opencode','hermes']){
         assert ['config','set','stt.aizamin.model','whisper-large-v3-turbo'] in calls
         assert ['config','set','stt.aizamin.base_url','https://aizamin.ir/v1'] in calls
         assert ['plugins','enable','stt/aizamin','--no-allow-tool-override'] in calls
-        stt_source = (home / 'hermes/plugins/stt/aizamin/__init__.py').read_text()
+        stt_source = (home / 'hermes/profiles/aizamin-standard/plugins/stt/aizamin/__init__.py').read_text()
         assert stt_source == (ROOT / 'configurer/hermes-stt/__init__.py').read_text()
         assert not any(c[:3] == ['config','set','GROQ_API_KEY'] or c[:3] == ['config','set','VOICE_TOOLS_OPENAI_KEY'] for c in calls)
-        for path in ['codex/config.toml','codex/auth.json','hermes/config.yaml','hermes/.env','xdg/opencode/opencode.jsonc']:
+        assert (home / 'hermes/.env').read_text() == 'OTHER_KEY=fake-fixture\n'
+        assert not list((home / 'hermes').glob('*.aizamin.backup.*'))
+        lite_calls = [json.loads(line) for line in (home / 'hermes/profiles/aizamin-lite/fake-cli-calls.jsonl').read_text().splitlines()]
+        assert ['config','set','toolsets','["terminal"]'] in lite_calls
+        assert ['tools','enable','image_gen'] not in lite_calls
+        for path in ['codex/config.toml','codex/auth.json','hermes/profiles/aizamin-standard/config.yaml','xdg/opencode/opencode.jsonc']:
             assert len(list((home / path).parent.glob(Path(path).name+'.aizamin.backup.*'))) >= 2, path
         print('Native configurer and installed MCP executed twice with stripped PATH; fake Hermes fixture verified.')
 
