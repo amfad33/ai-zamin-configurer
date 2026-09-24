@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -200,8 +201,35 @@ func configureOpenCode(p Payload) error {
 		}
 		opts["store"] = false
 	}
+	pluginPath := filepath.ToSlash(filepath.Join(dir, "plugins", "aizamin.mjs"))
+	if !strings.HasPrefix(pluginPath, "/") {
+		pluginPath = "/" + pluginPath
+	}
+	pluginURL := (&url.URL{Scheme: "file", Path: pluginPath}).String()
+	plugins := []any{}
+	if old, exists := config["plugin"]; exists {
+		var ok bool
+		plugins, ok = old.([]any)
+		if !ok {
+			return errors.New("existing OpenCode plugin must be an array")
+		}
+	}
+	found := false
+	for _, plugin := range plugins {
+		if plugin == pluginURL {
+			found = true
+		}
+	}
+	if !found {
+		plugins = append(plugins, pluginURL)
+	}
+	config["plugin"] = plugins
 	config["$schema"] = "https://opencode.ai/config.json"
 	if err = writePrivate(path, jsonBytes(config), 0600); err != nil {
+		return err
+	}
+	// App-native plugin: selectable in the existing Desktop agent picker.
+	if err = writePrivate(filepath.Join(dir, "plugins", "aizamin.mjs"), []byte(openCodePluginSource), 0600); err != nil {
 		return err
 	}
 	if err = writePrivate(filepath.Join(dir, "aizamin-image.json"), jsonBytes(map[string]string{"apiKey": p.Key}), 0600); err != nil {

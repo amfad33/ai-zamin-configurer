@@ -6,7 +6,8 @@
   // Explicit capabilities for proxy aliases absent from upstream model catalogs.
   const VISION_MODELS = ['gpt-5.2', 'gpt-5.6', 'gpt-5.6-sol', 'gpt-5.6-terra', 'gpt-5.6-luna', 'gpt-5.5', 'gpt-5.4', 'gpt-5.4-mini', 'codex-mini-latest'];
   const labels = { codex: 'Codex', hermes: 'Hermes', opencode: 'OpenCode' };
-  const openCodeConfig = key => {
+  // Runtime plugin discovers authorized Standard/Lite catalogs at app startup.
+  const openCodeConfig = (key, availableModels = []) => {
     const variants = (includeMax = false) => ({
       low: {}, medium: {}, high: {}, xhigh: {}, ...(includeMax ? { max: {} } : {}),
     });
@@ -19,27 +20,30 @@
       options: { store: false },
       variants: variants(includeMax),
     });
+    // Capability templates below apply only to explicitly known standard aliases.
+    const models = {
+      'gpt-5.2': model('GPT-5.2', 400000, 128000),
+      'gpt-5.6': model('GPT-5.6 (Sol)', 1050000, 128000, true),
+      'gpt-5.6-sol': model('GPT-5.6 Sol', 1050000, 128000, true),
+      'gpt-5.6-terra': model('GPT-5.6 Terra', 1050000, 128000, true),
+      'gpt-5.6-luna': model('GPT-5.6 Luna', 1050000, 128000, true),
+      'gpt-5.5': model('GPT-5.5', 1050000, 128000),
+      'gpt-5.4': model('GPT-5.4', 1050000, 128000),
+      'gpt-5.4-mini': model('GPT-5.4 Mini', 400000, 128000),
+      'gpt-5.3-codex-spark': model('GPT-5.3 Codex Spark', 128000, 32000),
+      'codex-mini-latest': {
+        name: 'Codex Mini', attachment: true,
+        modalities: { input: ['text', 'image'], output: ['text'] },
+        limit: { context: 200000, output: 100000 }, options: { store: false },
+        variants: { low: {}, medium: {}, high: {} },
+      },
+    };
+    for (const id of availableModels) {
+      if (!models[id]) models[id] = { name: id, attachment: false, modalities: { input: ['text'], output: ['text'] } };
+    }
     return {
       options: { baseURL: ENDPOINT, apiKey: key },
-      models: {
-        'gpt-5.2': model('GPT-5.2', 400000, 128000),
-        'gpt-5.6': model('GPT-5.6 (Sol)', 1050000, 128000, true),
-        'gpt-5.6-sol': model('GPT-5.6 Sol', 1050000, 128000, true),
-        'gpt-5.6-terra': model('GPT-5.6 Terra', 1050000, 128000, true),
-        'gpt-5.6-luna': model('GPT-5.6 Luna', 1050000, 128000, true),
-        'gpt-5.5': model('GPT-5.5', 1050000, 128000),
-        'gpt-5.4': model('GPT-5.4', 1050000, 128000),
-        'gpt-5.4-mini': model('GPT-5.4 Mini', 400000, 128000),
-        'gpt-5.3-codex-spark': model('GPT-5.3 Codex Spark', 128000, 32000),
-        'codex-mini-latest': {
-          name: 'Codex Mini',
-          attachment: true,
-          modalities: { input: ['text', 'image'], output: ['text'] },
-          limit: { context: 200000, output: 100000 },
-          options: { store: false },
-          variants: { low: {}, medium: {}, high: {} },
-        },
-      },
+      models,
     };
   };
 
@@ -132,7 +136,7 @@ export default tool({
     if (isSTTModel(model)) throw new Error('Speech models cannot be selected as coding models');
     models = models.filter(id => !isSTTModel(id));
     const payload = { version: 1, app, key, model };
-    if (app === 'opencode') Object.assign(payload, { provider: openCodeConfig(key), tool: openCodeImageTool });
+    if (app === 'opencode') Object.assign(payload, { provider: openCodeConfig(key, models), tool: openCodeImageTool });
     if (app === 'hermes') {
       const plugin = typeof module !== 'undefined' && module.exports ? require('./assets/hermes-image-provider.js') : globalThis.AIZaminHermesImageProvider;
       if (!plugin) throw new Error('Reload the setup page to load the AI Zamin image provider.');
@@ -143,8 +147,8 @@ export default tool({
     return {
       filename: `aizamin-${app}-setup-${os}-${arch}${os === 'macos' ? '.command' : suffix}`,
       os, mime: 'application/octet-stream', payload,
-      binaryUrl: `/assets/configurers/aizamin-configurer-${os}-${arch}${suffix}?v=native-auth-route-v6`,
-      content: `AI Zamin native configurer (${os}/${arch})\nNo external Node/Python/Go runtime installation. Existing files get timestamped .aizamin.backup copies.\nOpen-source configuration helper: https://github.com/amfad33/ai-zamin-configurer\n${app === 'hermes' ? 'Creates managed aizamin-lite (constrained routes, minimal terminal) and aizamin-standard (main routes, full tools/image/vision). Native Hermes plugin loads live catalogs on startup; no recurring setup. Existing customers need this one-time migration. Default profile is untouched; obsolete installer-owned chat profiles are archived with conversations preserved. Start hermes -p PROFILE in a new session; /model does not switch profiles. Both retain STT.\n' : ''}This is the embedded configuration, not executable source. Keep it private.\n\n${JSON.stringify(payload, null, 2)}`,
+      binaryUrl: `/assets/configurers/aizamin-configurer-${os}-${arch}${suffix}?v=native-opencode-lite-v7`,
+      content: `AI Zamin native configurer (${os}/${arch})\nNo external Node/Python/Go runtime installation. Existing files get timestamped .aizamin.backup copies.\nOpen-source configuration helper: https://github.com/amfad33/ai-zamin-configurer\n${app === 'opencode' ? 'Restart OpenCode Desktop and start a new session. Select AI Zamin Lite in the agent picker for constrained models; its model is bound automatically. Bash/read require approval. Build/Plan retain Standard image tools. Catalogs refresh on restart. Oversized requests fail without dropping messages; shorten input/output or use Standard. Do not use the retired OPENCODE_CONFIG=opencode-lite.json override.\n' : ''}${app === 'hermes' ? 'Creates managed aizamin-lite (constrained routes, minimal terminal) and aizamin-standard (main routes, full tools/image/vision). Native Hermes plugin loads live catalogs on startup; no recurring setup. Existing customers need this one-time migration. Default profile is untouched; obsolete installer-owned chat profiles are archived with conversations preserved. Start hermes -p PROFILE in a new session; /model does not switch profiles. Both retain STT.\n' : ''}This is the embedded configuration, not executable source. Keep it private.\n\n${JSON.stringify(payload, null, 2)}`,
     };
   };
   const assembleInstaller = (binary, artifact) => {

@@ -112,6 +112,9 @@ func hermesCommand(args ...string) (string, error) {
 	return strings.TrimSpace(string(b)), nil
 }
 
+//go:embed opencode-plugin.mjs
+var openCodePluginSource string
+
 //go:embed hermes-stt/__init__.py
 var hermesSTTSource string
 

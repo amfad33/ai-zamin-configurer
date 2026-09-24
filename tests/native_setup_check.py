@@ -72,6 +72,10 @@ for(const app of ['codex','opencode','hermes']){
         oc = json.loads((home / 'xdg/opencode/opencode.jsonc').read_text())
         assert oc['model'] == 'other/model' and oc['provider']['other']['name'] == 'keep'
         assert oc['provider']['openai']['models']['gpt-5.5']['attachment'] is True
+        assert not (home / 'xdg/opencode/opencode-lite.json').exists()
+        plugin = home / 'xdg/opencode/plugins/aizamin.mjs'
+        assert plugin.read_text() == (ROOT / 'configurer/opencode-plugin.mjs').read_text()
+        assert oc['plugin'].count(plugin.as_uri()) == 1
         assert (home / 'xdg/opencode/tools/aizamin_image.ts').is_file()
         assert 'untouched-fixture' in (home / 'hermes/config.yaml').read_text()
         assert (home / 'hermes/profiles/aizamin-standard/plugins/image_gen/aizamin/__init__.py').is_file()
