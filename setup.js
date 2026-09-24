@@ -147,7 +147,7 @@ export default tool({
     return {
       filename: `aizamin-${app}-setup-${os}-${arch}${os === 'macos' ? '.command' : suffix}`,
       os, mime: 'application/octet-stream', payload,
-      binaryUrl: `/assets/configurers/aizamin-configurer-${os}-${arch}${suffix}?v=native-opencode-lite-v7`,
+      binaryUrl: `/assets/configurers/aizamin-configurer-${os}-${arch}${suffix}?v=native-opencode-name-v8`,
       content: `AI Zamin native configurer (${os}/${arch})\nNo external Node/Python/Go runtime installation. Existing files get timestamped .aizamin.backup copies.\nOpen-source configuration helper: https://github.com/amfad33/ai-zamin-configurer\n${app === 'opencode' ? 'Restart OpenCode Desktop and start a new session. Select AI Zamin Lite in the agent picker for constrained models; its model is bound automatically. Bash/read require approval. Build/Plan retain Standard image tools. Catalogs refresh on restart. Oversized requests fail without dropping messages; shorten input/output or use Standard. Do not use the retired OPENCODE_CONFIG=opencode-lite.json override.\n' : ''}${app === 'hermes' ? 'Creates managed aizamin-lite (constrained routes, minimal terminal) and aizamin-standard (main routes, full tools/image/vision). Native Hermes plugin loads live catalogs on startup; no recurring setup. Existing customers need this one-time migration. Default profile is untouched; obsolete installer-owned chat profiles are archived with conversations preserved. Start hermes -p PROFILE in a new session; /model does not switch profiles. Both retain STT.\n' : ''}This is the embedded configuration, not executable source. Keep it private.\n\n${JSON.stringify(payload, null, 2)}`,
     };
   };

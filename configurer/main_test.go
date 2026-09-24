@@ -54,6 +54,9 @@ func TestPayloadAndOpenCodeMerge(t *testing.T) {
 	if got["model"] != "other/model" || got["provider"].(map[string]any)["other"] == nil {
 		t.Fatal("existing config lost")
 	}
+	if got["provider"].(map[string]any)["openai"].(map[string]any)["name"] != "aizamin" {
+		t.Fatal("managed provider display name missing")
+	}
 	if got["agent"].(map[string]any)["build"].(map[string]any)["options"].(map[string]any)["temperature"] != 0.4 {
 		t.Fatal("agent settings lost")
 	}

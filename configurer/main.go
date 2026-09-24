@@ -185,6 +185,9 @@ func configureOpenCode(p Payload) error {
 	if err != nil {
 		return err
 	}
+	// Keep the OpenAI adapter/provider ID for transport compatibility, but
+	// display the managed gateway under its own brand in the model picker.
+	p.Provider["name"] = "aizamin"
 	providers["openai"] = p.Provider
 	agents, err := object(config, "agent")
 	if err != nil {

@@ -54,7 +54,7 @@ export default async () => {
       if (lite.some(id => standard.includes(id))) throw new Error('AI Zamin catalogs overlap; refusing ambiguous routing.');
       catalogs.standard = standard; catalogs.lite = lite;
       cfg.provider ||= {};
-      const previous = cfg.provider.openai || {};
+      const previous = { ...cfg.provider.openai, name: 'aizamin' };
       // Preserve explicit standard vision/reasoning definitions only for current
       // authorized IDs. Unknown aliases get text-only, no invented variants.
       cfg.provider.openai = { ...previous, options: { ...previous.options, baseURL: `${origin}/v1`, apiKey: key },
