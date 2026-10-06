@@ -17,7 +17,7 @@ function compactSchema(value) {
 export default async () => {
   const settings = JSON.parse(readFileSync(new URL('../aizamin-image.json', import.meta.url), 'utf8'));
   const key = settings.apiKey;
-  const origin = 'https://ai.aizamin.ir';
+  const origin = 'https://aizamin.ir';
   const nativeFetch = globalThis.fetch;
   const catalogs = {};
   const sessions = new Map();

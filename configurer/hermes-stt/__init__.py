@@ -2,7 +2,7 @@
 from agent.transcription_provider import TranscriptionProvider
 
 MODELS = ("whisper-large-v3-turbo", "whisper-large-v3")
-ENDPOINT = "https://ai.aizamin.ir/v1"
+ENDPOINT = "https://aizamin.ir/v1"
 
 
 class AIZaminTranscriptionProvider(TranscriptionProvider):
@@ -40,7 +40,7 @@ class AIZaminTranscriptionProvider(TranscriptionProvider):
             # A purchased gateway key must never be sent to another endpoint.
             base_url = cfg.get("base_url", ENDPOINT)
             if base_url.rstrip("/") != ENDPOINT:
-                return {**failure, "error": "AI Zamin STT base_url must be https://ai.aizamin.ir/v1."}
+                return {**failure, "error": "AI Zamin STT base_url must be https://aizamin.ir/v1."}
             kwargs = {"model": model, "response_format": "json"}
             if language:
                 kwargs["language"] = language

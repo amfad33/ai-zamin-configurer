@@ -1,5 +1,5 @@
 (() => {
-  const ENDPOINT = 'https://ai.aizamin.ir/v1';
+  const ENDPOINT = 'https://aizamin.ir/v1';
   const DEFAULT_MODEL = 'gpt-5.5';
   // Audio models belong to STT settings, never the coding/chat catalog.
   const isSTTModel = id => /^(?:groq\/)?(?:whisper(?:-|$)|distil-whisper(?:-|$))/.test(id);
@@ -89,7 +89,7 @@
       headers['Content-Type'] = 'application/json';
       body = JSON.stringify(payload);
     }
-    const response = await fetch(referenceImages.length ? 'https://ai.aizamin.ir/v1/images/edits' : 'https://ai.aizamin.ir/v1/images/generations', {
+    const response = await fetch(referenceImages.length ? 'https://aizamin.ir/v1/images/edits' : 'https://aizamin.ir/v1/images/generations', {
       method: 'POST',
       headers,
       body,

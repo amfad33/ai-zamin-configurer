@@ -206,7 +206,7 @@ func configureHermesProfile(p Payload, profile string) error {
 			return err
 		}
 	}
-	if _, err = command("config", "set", "aizamin_catalog.url", "https://ai.aizamin.ir/hermes-"+strings.TrimPrefix(profile, "aizamin-")+"/v1/models"); err != nil {
+	if _, err = command("config", "set", "aizamin_catalog.url", "https://aizamin.ir/hermes-"+strings.TrimPrefix(profile, "aizamin-")+"/v1/models"); err != nil {
 		return err
 	}
 	fmt.Println("Configured managed Hermes profile: " + profile)
