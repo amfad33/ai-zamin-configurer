@@ -38,7 +38,7 @@ A source update alone does not update website downloads: rebuilding all six nati
 
 The website attaches the selected user's configuration locally in the browser to a platform executable. Windows/Linux use an appended JSON payload; macOS wraps the unchanged Mach-O executable and a separate payload with built-in shell utilities to preserve its signature. The downloaded personalized file contains the user's API key: **never publish it or include it in an issue**. The public source contains no customer key.
 
-Configuration writes are local. When used, image tools send paid requests to `https://aizamin.ir/v1`; Hermes may also retrieve user-supplied reference-image URLs. Chat requests are sent by the configured application. This helper is not a model service and does not grant free API credit.
+Configuration writes are local. When used, image tools send paid requests to `https://ai.aizamin.ir/v1`; Hermes may also retrieve user-supplied reference-image URLs. Chat requests are sent by the configured application. This helper is not a model service and does not grant free API credit.
 
 ## Build and test (developers only)
 
@@ -50,6 +50,8 @@ go test -p 1 ./...
 CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o aizamin-configurer .
 cd ..
 node tests/setup-native.test.cjs
+node tests/public-endpoints.test.cjs
+node tests/opencode-plugin.test.cjs
 python tests/native_setup_check.py
 ```
 

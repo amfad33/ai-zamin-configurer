@@ -59,11 +59,11 @@ c = load_config()
 from hermes_cli.runtime_provider import resolve_runtime_provider
 runtime = resolve_runtime_provider(requested='aizamin')
 assert runtime['api_key'] == 'synthetic-catalog-key', 'inference used a stale credential instead of the installed key'
-assert runtime['base_url'].rstrip('/') == 'https://aizamin.ir/v1', 'inference retained a stale endpoint'
+assert runtime['base_url'].rstrip('/') == 'https://ai.aizamin.ir/v1', 'inference retained a stale endpoint'
 import httpx
 from openai import OpenAI
 def inference(request):
-    assert str(request.url) == 'https://aizamin.ir/v1/chat/completions'
+    assert str(request.url) == 'https://ai.aizamin.ir/v1/chat/completions'
     assert request.headers['Authorization'] == 'Bearer synthetic-catalog-key'
     return httpx.Response(200, json={'id': 'fixture', 'object': 'chat.completion',
         'created': 0, 'model': 'fixture', 'choices': [{'index': 0,

@@ -45,7 +45,7 @@ and `hermes -p NAME config set`; the operator's default/active profile is untouc
 It backs up each managed profile's config and `.env`,
 installs `plugins/stt/aizamin`, and uses `hermes config set` (not handwritten YAML)
 for `stt.enabled=true`, `stt.provider=aizamin`,
-`stt.aizamin.base_url=https://aizamin.ir/v1`, and
+`stt.aizamin.base_url=https://ai.aizamin.ir/v1`, and
 `stt.aizamin.model=whisper-large-v3-turbo`. It reuses the purchased key stored by
 `hermes config set HERMES_CUSTOM_AIZAMIN_API_KEY ...` in the profile's `.env`.
 The plugin resolves this key via Hermes' profile-aware `get_secret`; it does not

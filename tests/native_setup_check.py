@@ -57,7 +57,7 @@ for(const app of ['codex','opencode','hermes']){
         config = tomllib.loads((home / 'codex/config.toml').read_text())
         assert config['approval_policy'] == 'on-request'
         assert config['model_providers']['other']['name'] == 'keep'
-        assert config['model_providers']['OpenAI']['base_url'] == 'https://aizamin.ir/v1'
+        assert config['model_providers']['OpenAI']['base_url'] == 'https://ai.aizamin.ir/v1'
         assert config['forced_login_method'] == 'api'
         server = config['mcp_servers']['aizamin_image']
         assert Path(server['command']).is_file() and server['args'] == ['--mcp']
@@ -83,12 +83,12 @@ for(const app of ['codex','opencode','hermes']){
         assert ['config','set','image_gen.provider','aizamin'] in calls
         assert ['config','set','auxiliary.vision.provider','aizamin'] in calls
         assert ['config','set','HERMES_CUSTOM_AIZAMIN_API_KEY','fake-test-key'] in calls
-        assert ['config','set','aizamin_catalog.url','https://aizamin.ir/hermes-standard/v1/models'] in calls
+        assert ['config','set','aizamin_catalog.url','https://ai.aizamin.ir/hermes-standard/v1/models'] in calls
         assert (home / 'hermes/profiles/aizamin-standard/plugins/model-providers/aizamin/__init__.py').is_file()
         assert ['config','set','stt.provider','aizamin'] in calls
         assert ['config','set','stt.enabled','true'] in calls
         assert ['config','set','stt.aizamin.model','whisper-large-v3-turbo'] in calls
-        assert ['config','set','stt.aizamin.base_url','https://aizamin.ir/v1'] in calls
+        assert ['config','set','stt.aizamin.base_url','https://ai.aizamin.ir/v1'] in calls
         assert ['plugins','enable','stt/aizamin','--no-allow-tool-override'] in calls
         stt_source = (home / 'hermes/profiles/aizamin-standard/plugins/stt/aizamin/__init__.py').read_text()
         assert stt_source == (ROOT / 'configurer/hermes-stt/__init__.py').read_text()

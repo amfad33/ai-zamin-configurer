@@ -16,7 +16,7 @@ import (
 )
 
 const footer = "AIZAMIN_CONFIG_V1"
-const endpoint = "https://aizamin.ir/v1"
+const endpoint = "https://ai.aizamin.ir/v1"
 
 type Payload struct {
 	Version  int               `json:"version"`

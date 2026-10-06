@@ -46,8 +46,8 @@ from hermes_cli.config import read_user_config_raw, save_config
 config = read_user_config_raw()
 settings = config.get('aizamin_catalog', {})
 profile = AIZaminProfile(name='aizamin', display_name='AI Zamin',
-    env_vars=('HERMES_CUSTOM_AIZAMIN_API_KEY',), base_url='https://aizamin.ir/v1',
-    models_url=settings.get('url','https://aizamin.ir/hermes-standard/v1/models'),
+    env_vars=('HERMES_CUSTOM_AIZAMIN_API_KEY',), base_url='https://ai.aizamin.ir/v1',
+    models_url=settings.get('url','https://ai.aizamin.ir/hermes-standard/v1/models'),
     fallback_models=())
 register_provider(profile)
 # No network for installer/config commands before activation.
